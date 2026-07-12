@@ -483,7 +483,13 @@ window.checkVerified = async function(){
   }
 };
 window.resendVerification = async function(){
-  if(auth.currentUser){ await sendEmailVerification(auth.currentUser); showBanner('Verification email resent.', 'ok'); }
+  if(!auth.currentUser){ showBanner('Session expired, please log in again.', 'err'); showStep('email'); return; }
+  try{
+    await sendEmailVerification(auth.currentUser);
+    showBanner('Verification email resent — check inbox and spam.', 'ok');
+  }catch(e){
+    showBanner(friendlyError(e), 'err');
+  }
 };
 
 /* ============ LOGIN ============ */
@@ -511,6 +517,9 @@ function friendlyError(e){
   if(code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
   if(code.includes('user-not-found')) return 'No account with that email — create one first.';
   if(code.includes('weak-password')) return 'Password is too weak (min 8 characters).';
+  if(code.includes('too-many-requests')) return 'Too many attempts too fast — Firebase is throttling. Wait a few minutes and try again.';
+  if(code.includes('network-request-failed')) return 'Network error — check your connection.';
+  if(code.includes('unauthorized-domain')) return 'This domain isn\u2019t authorized in Firebase Auth settings (Authentication → Settings → Authorized domains).';
   return e.message || 'Something went wrong.';
 }
 
