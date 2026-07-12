@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"> 
+<meta charset="UTF-8">
 <title>Verido</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+
 :root{
   --bg:#12131C; --surface:#1B1D2A; --surface2:#232537; --surface3:#2A2C42;
   --coral:#FF6B5C; --coral-dim:#7A3E37; --violet:#8B7CF6; --violet-dim:#443B7A;
@@ -155,39 +156,60 @@ input,select,textarea{font-family:inherit;}
 .theme-dot{width:22px; height:22px; border-radius:50%; border:2px solid transparent; cursor:pointer;}
 .theme-dot.selected{border-color:var(--text);}
 .consent-note{font-size:11px; color:var(--muted); background:var(--surface2); border-radius:10px; padding:10px 12px; margin:14px 18px; line-height:1.5;}
+
+.banner{background:var(--surface2); border-bottom:1px solid var(--border); padding:9px 16px; font-size:12px; color:var(--muted); text-align:center;}
+.banner.err{color:var(--danger);}
+.banner.ok{color:var(--gold);}
+.link-toggle{text-align:center; font-size:12.5px; color:var(--violet); margin-top:16px; cursor:pointer;}
+.save-contact-btn{background:var(--gold); color:#3a2a04; font-size:11px; font-weight:600; padding:5px 10px; border-radius:14px; margin-right:10px; cursor:pointer;}
+.loading-dot{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--muted); animation:pulse 1s infinite ease-in-out;}
+@keyframes pulse{0%,100%{opacity:.3} 50%{opacity:1}}
 </style>
 </head>
 <body>
 <div id="app">
 
+  <div id="boot" style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:13px;">Connecting to Verido<span class="loading-dot"></span></div>
+
   <!-- ================= AUTH FLOW ================= -->
-  <div id="auth">
+  <div id="auth" class="hidden">
     <div class="auth-card">
       <div class="brand">
         <div class="brand-mark">V</div>
         <div><div class="brand-name">Verido</div><div class="brand-tag">the messenger that knows who's real</div></div>
       </div>
+      <div id="authBanner" class="banner hidden" style="margin:-10px -32px 18px; border-radius:0;"></div>
 
-      <!-- STEP 1: EMAIL -->
+      <!-- STEP 1: EMAIL / LOGIN TOGGLE -->
       <div id="step-email">
-        <div class="step-label">Step 1 of 4</div>
-        <div class="step-title">Create your account</div>
-        <div class="step-sub">Only Gmail is accepted, so every account can be traced to a verifiable inbox and a real, scanned face — not a burner.</div>
-        <div class="field"><label>Gmail address</label><input id="regEmail" type="email" placeholder="you@gmail.com"></div>
-        <div class="field"><label>Recovery password</label><input id="regPass" type="password" placeholder="Min. 8 characters"></div>
-        <div class="hint">Used only for account recovery — never shown to other users.</div>
-        <button class="btn-primary" onclick="goOtp()" style="margin-top:16px;">Send verification code</button>
+        <div id="mode-register">
+          <div class="step-label">Step 1 of 4</div>
+          <div class="step-title">Create your account</div>
+          <div class="step-sub">Only Gmail is accepted, so every account can be traced to a verifiable inbox and a real, scanned face — not a burner.</div>
+          <div class="field"><label>Gmail address</label><input id="regEmail" type="email" placeholder="you@gmail.com"></div>
+          <div class="field"><label>Recovery password</label><input id="regPass" type="password" placeholder="Min. 8 characters"></div>
+          <div class="hint">Used only for account recovery — never shown to other users.</div>
+          <button class="btn-primary" id="btnRegister" onclick="startRegister()" style="margin-top:16px;">Create account & send verification</button>
+          <div class="link-toggle" onclick="toggleAuthMode()">Already have an account? Log in</div>
+        </div>
+        <div id="mode-login" class="hidden">
+          <div class="step-title">Welcome back</div>
+          <div class="step-sub">Log in with your Gmail and recovery password.</div>
+          <div class="field"><label>Gmail address</label><input id="loginEmail" type="email" placeholder="you@gmail.com"></div>
+          <div class="field"><label>Password</label><input id="loginPass" type="password" placeholder="Your password"></div>
+          <button class="btn-primary" id="btnLogin" onclick="doLogin()">Log in</button>
+          <div class="link-toggle" onclick="toggleAuthMode()">New here? Create an account</div>
+        </div>
       </div>
 
-      <!-- STEP 2: OTP -->
-      <div id="step-otp" class="hidden">
+      <!-- STEP 2: EMAIL VERIFICATION (real Gmail link) -->
+      <div id="step-verify" class="hidden">
         <div class="step-label">Step 2 of 4</div>
         <div class="step-title">Verify your Gmail</div>
-        <div class="step-sub">We emailed a 6-digit code to <b id="otpEmailShown" style="color:var(--text)"></b>.</div>
-        <div class="otp-note">DEMO MODE — no real email is sent. Use code <b style="color:var(--gold)">123456</b>.</div>
-        <div class="field"><label>Enter code</label><input id="otpCode" maxlength="6" placeholder="123456"></div>
-        <button class="btn-primary" onclick="verifyOtp()">Verify</button>
-        <button class="btn-ghost" onclick="showStep('email')">← Back</button>
+        <div class="step-sub">We sent a real verification link to <b id="verifyEmailShown" style="color:var(--text)"></b>. Open your Gmail inbox, click the link, then come back here.</div>
+        <div class="otp-note" style="border-color:var(--border)">Didn't get it? Check spam, or tap resend below.</div>
+        <button class="btn-primary" onclick="checkVerified()">I've verified — continue</button>
+        <button class="btn-secondary" onclick="resendVerification()">Resend verification email</button>
       </div>
 
       <!-- STEP 3: LIVE FACE CAPTURE -->
@@ -213,10 +235,10 @@ input,select,textarea{font-family:inherit;}
       <div id="step-profile" class="hidden">
         <div class="step-label">Step 4 of 4</div>
         <div class="step-title">Almost there</div>
-        <div class="step-sub">Your verified photo is locked in. Now pick a display name — your contacts will still see your verified scan first, until they save you.</div>
+        <div class="step-sub">Your verified photo is locked in and saved to your account. Pick a display name — contacts see your verified scan first, until they save you.</div>
         <div class="face-wrap"><div class="face-ring locked"><div class="ring-bg"></div><div class="ring-inner"><img id="finalFaceImg"></div></div></div>
         <div class="field"><label>Display name</label><input id="regName" placeholder="How should people see you?"></div>
-        <button class="btn-primary" onclick="finishRegistration()">Enter Verido</button>
+        <button class="btn-primary" id="btnFinish" onclick="finishRegistration()">Enter Verido</button>
       </div>
     </div>
   </div>
@@ -226,7 +248,7 @@ input,select,textarea{font-family:inherit;}
     <div class="topbar">
       <div class="brand-name">Verido</div>
       <div style="display:flex; gap:14px; font-size:17px; color:var(--muted);">
-        <span onclick="openNewChatDemo()" style="cursor:pointer">💬</span>
+        <span onclick="openNewChat()" style="cursor:pointer">💬</span>
       </div>
     </div>
     <div class="tabs">
@@ -235,32 +257,25 @@ input,select,textarea{font-family:inherit;}
       <button class="tab" data-tab="settings" onclick="switchTab('settings')">PROFILE</button>
     </div>
 
-    <!-- CHATS VIEW -->
     <div class="view" id="view-chats">
-      <div class="search-wrap"><input placeholder="Search chats"></div>
+      <div class="search-wrap"><input placeholder="Search chats" id="chatSearch" oninput="renderChatList()"></div>
       <div id="chatList"></div>
-      <div class="fab" onclick="openNewChatDemo()">＋</div>
+      <div class="fab" onclick="openNewChat()">＋</div>
     </div>
 
-    <!-- CALLS VIEW -->
     <div class="view hidden" id="view-calls">
-      <div class="call-row"><div class="avatar saved" style="background:linear-gradient(135deg,var(--violet),var(--coral))">S</div>
-        <div style="flex:1"><div class="chat-name">Sanduni Perera</div><div class="call-dir">↗ Voice call · Outgoing</div></div>
-        <div style="color:var(--muted); font-size:11px">Yesterday</div></div>
-      <div class="call-row"><div class="avatar unsaved" style="background:var(--surface3)">?</div>
-        <div style="flex:1"><div class="chat-name">+94 71 208 4471</div><div class="call-dir missed">↙ Video call · Missed</div></div>
-        <div style="color:var(--muted); font-size:11px">Mon</div></div>
-      <div style="text-align:center; padding:20px; color:var(--muted); font-size:12px;">Tap a chat and use the 📞 / 🎥 icons to start a live call.</div>
+      <div style="text-align:center; padding:40px 24px; color:var(--muted); font-size:12.5px; line-height:1.6;">
+        📞 Calling is UI-only in this build.<br>Real voice/video calls need a WebRTC signaling + TURN layer — see <b style="color:var(--text)">verido-architecture.md</b> for the plan.<br>Open a chat and tap 📞/🎥 to preview the call screen.
+      </div>
     </div>
 
-    <!-- SETTINGS VIEW -->
     <div class="view hidden" id="view-settings">
       <div style="display:flex; flex-direction:column; align-items:center; padding:28px 0 10px;">
         <div class="face-ring locked" style="width:110px; height:110px;"><div class="ring-bg"></div><div class="ring-inner"><img id="myProfileImg"></div></div>
         <div style="font-weight:600; margin-top:12px;" id="myProfileName"></div>
         <div style="font-size:11.5px; color:var(--muted)" id="myProfileEmail"></div>
       </div>
-      <div class="consent-note">🔒 Your live verification scan is stored to confirm you're a real, unique person — not for facial recognition marketing. You control your display photo; the verified scan is only ever shown as a fallback to people who haven't saved you yet.</div>
+      <div class="consent-note">🔒 Your live verification scan is stored in your own Firebase project to confirm you're a real, unique person. It's shown only as a fallback to people who haven't saved you yet.</div>
       <div class="settings-list">
         <div class="set-row"><span>Accent theme</span>
           <div style="display:flex; gap:8px;">
@@ -270,8 +285,7 @@ input,select,textarea{font-family:inherit;}
           </div>
         </div>
         <div class="set-row"><span>Voice-typing language</span><span style="color:var(--muted); font-size:12.5px;">English / සිංහල</span></div>
-        <div class="set-row"><span>Two-step recovery password</span><span style="color:var(--gold); font-size:12px;">Set ✓</span></div>
-        <div class="set-row"><span>Read receipts</span><span style="color:var(--gold); font-size:12px;">On</span></div>
+        <div class="set-row" style="cursor:pointer; color:var(--danger);" onclick="doLogout()"><span>Log out</span><span>→</span></div>
       </div>
     </div>
   </div>
@@ -283,8 +297,9 @@ input,select,textarea{font-family:inherit;}
       <div class="avatar" id="chatHeadAvatar" style="width:38px;height:38px;"></div>
       <div class="info">
         <div class="name" id="chatHeadName"></div>
-        <div class="status" id="chatHeadStatus">online</div>
+        <div class="status" id="chatHeadStatus">Verido user</div>
       </div>
+      <span class="save-contact-btn hidden" id="saveContactBtn" onclick="saveContact()">Save contact</span>
       <span style="font-size:17px; margin-right:14px; cursor:pointer;" onclick="startCall('voice')">📞</span>
       <span style="font-size:17px; cursor:pointer;" onclick="startCall('video')">🎥</span>
     </div>
@@ -302,7 +317,7 @@ input,select,textarea{font-family:inherit;}
       <select class="lang-select" id="voiceLang"><option value="en-US">EN</option><option value="si-LK">සිං</option></select>
       <div class="icon-btn" id="micTypeBtn" onclick="toggleVoiceTyping()">🎙️</div>
       <input id="msgInput" placeholder="Message" onkeydown="if(event.key==='Enter')sendText()">
-      <div class="icon-btn rec-hold" id="recordBtn" onmousedown="startRecording()" onmouseup="stopRecording()" onmouseleave="cancelRecordingIfActive()" ontouchstart="startRecording()" ontouchend="stopRecording()">🎤</div>
+      <div class="icon-btn" id="recordBtn" onmousedown="startRecording()" onmouseup="stopRecording()" onmouseleave="cancelRecordingIfActive()" ontouchstart="startRecording()" ontouchend="stopRecording()">🎤</div>
       <div class="send-btn" onclick="sendText()">➤</div>
     </div>
   </div>
@@ -318,6 +333,19 @@ input,select,textarea{font-family:inherit;}
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeModal('pollModal')">Cancel</button>
         <button class="btn-primary" style="margin:0" onclick="sendPoll()">Send poll</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW CHAT MODAL -->
+  <div class="modal-overlay hidden" id="newChatModal">
+    <div class="modal">
+      <h3>Start a chat</h3>
+      <div class="field"><label>Their Gmail address</label><input id="newChatEmail" placeholder="friend@gmail.com"></div>
+      <div id="newChatStatus" style="font-size:12px; color:var(--muted); min-height:16px;"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal('newChatModal')">Cancel</button>
+        <button class="btn-primary" style="margin:0" onclick="startChatWithEmail()">Start chat</button>
       </div>
     </div>
   </div>
@@ -338,83 +366,192 @@ input,select,textarea{font-family:inherit;}
 
 </div>
 
-<script>
-/* ============ STATE ============ */
-let me = { name:'', email:'', photo:'', accent:'coral' };
-let camStream = null;
-let mediaRecorder = null, recChunks = [], recStart = 0;
-let recognizing = false, recognition = null;
-let activeChatId = null;
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  sendEmailVerification, onAuthStateChanged, signOut, reload
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where,
+  getDocs, onSnapshot, orderBy, serverTimestamp, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref as storageRef, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-const placeholderPhoto = (seed, big) => {
-  // generates a simple gradient "face" avatar as data URI-free canvas image, used when no real camera photo exists
-  return null; // rendered via CSS instead, see renderAvatarNode
+const firebaseConfig = {
+  apiKey: "AIzaSyCaMdPoVqGflbBhWhsuV4L2duqiASIbP64",
+  authDomain: "src-competion-web.firebaseapp.com",
+  projectId: "src-competion-web",
+  storageBucket: "src-competion-web.firebasestorage.app",
+  messagingSenderId: "568183938397",
+  appId: "1:568183938397:web:02d16665d7bd393d505cb4",
+  measurementId: "G-C0YQX47SR5"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+/* ============ GLOBAL STATE ============ */
+let myUid = null, myDoc = null;
+let myContacts = new Set();       // uids I've saved
+let chatsCache = {};              // chatId -> {otherUid, otherData, lastMessage, updatedAt}
+let unsubMessages = null, unsubContacts = null, unsubChats = null;
+let activeChatId = null, activeOtherUid = null;
+let camStream = null, mediaRecorder = null, recChunks = [], recStart = 0;
+let recognizing = false, recognition = null;
+let pendingCredential = null;
+
+function $(id){ return document.getElementById(id); }
+function showBanner(msg, type){
+  const b = $('authBanner');
+  b.textContent = msg; b.className = 'banner' + (type ? ' '+type : '');
+  b.classList.remove('hidden');
+}
+function nowLabel(ts){
+  if(!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date();
+  return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+}
+
+/* ============ BOOT / SESSION ============ */
+onAuthStateChanged(auth, async (user)=>{
+  $('boot').classList.add('hidden');
+  if(!user){ $('auth').classList.remove('hidden'); $('main').classList.add('hidden'); return; }
+  myUid = user.uid;
+  const snap = await getDoc(doc(db,'users',myUid));
+  if(!user.emailVerified){
+    // resume registration at verification step
+    $('auth').classList.remove('hidden');
+    $('verifyEmailShown').textContent = user.email;
+    showStep('verify');
+    return;
+  }
+  if(!snap.exists() || !snap.data().identityPhotoURL || !snap.data().name){
+    // resume registration: has account + verified email, missing face/profile
+    $('auth').classList.remove('hidden');
+    if(snap.exists() && snap.data().identityPhotoURL){
+      window.__pendingPhotoURL = snap.data().identityPhotoURL;
+      $('finalFaceImg').src = snap.data().identityPhotoURL;
+      showStep('profile');
+    } else {
+      showStep('face');
+    }
+    return;
+  }
+  myDoc = snap.data();
+  enterApp();
+});
+
+function showStep(name){
+  ['email','verify','face','profile'].forEach(s=>$('step-'+s).classList.add('hidden'));
+  $('step-'+name).classList.remove('hidden');
+}
+function toggleAuthMode(){
+  $('mode-register').classList.toggle('hidden');
+  $('mode-login').classList.toggle('hidden');
+}
+window.toggleAuthMode = toggleAuthMode;
+
+/* ============ REGISTER ============ */
+window.startRegister = async function(){
+  const email = $('regEmail').value.trim();
+  const pass = $('regPass').value;
+  if(!email.endsWith('@gmail.com')){ showBanner('Please use a valid @gmail.com address.', 'err'); return; }
+  if(pass.length < 8){ showBanner('Password must be at least 8 characters.', 'err'); return; }
+  $('btnRegister').disabled = true; $('btnRegister').textContent = 'Creating account…';
+  try{
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db,'users',cred.user.uid), { email, createdAt: serverTimestamp() });
+    await sendEmailVerification(cred.user);
+    $('verifyEmailShown').textContent = email;
+    showStep('verify');
+  }catch(e){
+    showBanner(friendlyError(e), 'err');
+  }
+  $('btnRegister').disabled = false; $('btnRegister').textContent = 'Create account & send verification';
+};
+window.checkVerified = async function(){
+  if(!auth.currentUser){ showBanner('Session expired, please log in again.', 'err'); showStep('email'); return; }
+  await reload(auth.currentUser);
+  if(auth.currentUser.emailVerified){
+    showStep('face');
+  }else{
+    showBanner('Not verified yet — click the link in your Gmail inbox first.', 'err');
+  }
+};
+window.resendVerification = async function(){
+  if(auth.currentUser){ await sendEmailVerification(auth.currentUser); showBanner('Verification email resent.', 'ok'); }
 };
 
-let contacts = [
-  { id:'sanduni', name:'Sanduni Perera', saved:true, photoLabel:'S', color:'linear-gradient(135deg,var(--violet),var(--coral))',
-    lastMsg:"Yeah let's meet at 6", time:'09:41', messages:[
-      {from:'them', type:'text', text:'Are we still on for coffee?', time:'09:30'},
-      {from:'me', type:'text', text:"Yes! 6pm works", time:'09:35'},
-      {from:'them', type:'text', text:"Yeah let's meet at 6", time:'09:41'},
-    ]},
-  { id:'unknown1', name:'+94 71 208 4471', saved:false, photoLabel:'?', color:'#3a3c52',
-    lastMsg:'Hey, is this Kasun?', time:'08:12', messages:[
-      {from:'them', type:'text', text:'Hey, is this Kasun?', time:'08:12'},
-    ]},
-];
+/* ============ LOGIN ============ */
+window.doLogin = async function(){
+  const email = $('loginEmail').value.trim();
+  const pass = $('loginPass').value;
+  $('btnLogin').disabled = true; $('btnLogin').textContent = 'Logging in…';
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
+    // onAuthStateChanged handles the rest
+  }catch(e){
+    showBanner(friendlyError(e), 'err');
+  }
+  $('btnLogin').disabled = false; $('btnLogin').textContent = 'Log in';
+};
+window.doLogout = async function(){
+  if(unsubChats) unsubChats(); if(unsubContacts) unsubContacts(); if(unsubMessages) unsubMessages();
+  await signOut(auth);
+  location.reload();
+};
 
-/* ============ AUTH FLOW ============ */
-function showStep(name){
-  ['email','otp','face','profile'].forEach(s=>document.getElementById('step-'+s).classList.add('hidden'));
-  document.getElementById('step-'+name).classList.remove('hidden');
+function friendlyError(e){
+  const code = e.code || '';
+  if(code.includes('email-already-in-use')) return 'That Gmail is already registered — try logging in instead.';
+  if(code.includes('wrong-password') || code.includes('invalid-credential')) return 'Incorrect email or password.';
+  if(code.includes('user-not-found')) return 'No account with that email — create one first.';
+  if(code.includes('weak-password')) return 'Password is too weak (min 8 characters).';
+  return e.message || 'Something went wrong.';
 }
-function goOtp(){
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPass').value;
-  if(!email.endsWith('@gmail.com')){ alert('Please use a valid @gmail.com address — this is required so accounts stay traceable.'); return; }
-  if(pass.length < 8){ alert('Recovery password must be at least 8 characters.'); return; }
-  me.email = email;
-  document.getElementById('otpEmailShown').textContent = email;
-  showStep('otp');
-}
-function verifyOtp(){
-  const code = document.getElementById('otpCode').value.trim();
-  if(code !== '123456'){ alert('Incorrect code. (Demo code is 123456)'); return; }
-  showStep('face');
-}
-async function startCamera(){
-  const status = document.getElementById('scanStatus');
+
+/* ============ FACE CAPTURE ============ */
+window.startCamera = async function(){
+  const status = $('scanStatus');
   try{
     camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'user' }, audio:false });
-    document.getElementById('camVideo').srcObject = camStream;
+    $('camVideo').srcObject = camStream;
     status.textContent = 'Live camera active — center your face';
-    document.getElementById('captureBtn').disabled = false;
+    $('captureBtn').disabled = false;
   }catch(e){
     status.textContent = 'Camera blocked by this browser/preview. Use demo capture below.';
   }
-}
-function captureFace(){
-  const video = document.getElementById('camVideo');
+};
+window.captureFace = async function(){
+  const video = $('camVideo');
   const canvas = document.createElement('canvas');
   canvas.width = 300; canvas.height = 300;
   const ctx = canvas.getContext('2d');
-  const status = document.getElementById('scanStatus');
+  const status = $('scanStatus');
   status.textContent = 'Verifying liveness…';
   ctx.translate(300,0); ctx.scale(-1,1);
   ctx.drawImage(video, 0, 0, 300, 300);
-  const dataUrl = canvas.toDataURL('image/png');
-  setTimeout(()=>{
-    status.textContent = '✓ Live face confirmed';
-    status.classList.add('ok');
-    me.photo = dataUrl;
-    if(camStream){ camStream.getTracks().forEach(t=>t.stop()); }
-    document.getElementById('finalFaceImg').src = dataUrl;
-    setTimeout(()=>showStep('profile'), 500);
-  }, 900);
-}
-function fallbackCapture(){
-  // used only if the sandboxed preview blocks camera access — keeps the flow demoable
+  if(camStream) camStream.getTracks().forEach(t=>t.stop());
+  canvas.toBlob(async (blob)=>{
+    try{
+      const sref = storageRef(storage, `identity/${myUid}.png`);
+      await uploadBytes(sref, blob);
+      const url = await getDownloadURL(sref);
+      await updateDoc(doc(db,'users',myUid), { identityPhotoURL: url, profilePhotoURL: url });
+      status.textContent = '✓ Live face confirmed & saved';
+      status.classList.add('ok');
+      $('finalFaceImg').src = url;
+      setTimeout(()=>showStep('profile'), 400);
+    }catch(e){
+      status.textContent = 'Upload failed: ' + e.message;
+    }
+  }, 'image/png');
+};
+window.fallbackCapture = async function(){
   const canvas = document.createElement('canvas');
   canvas.width = 300; canvas.height = 300;
   const ctx = canvas.getContext('2d');
@@ -423,223 +560,317 @@ function fallbackCapture(){
   ctx.fillStyle = grad; ctx.fillRect(0,0,300,300);
   ctx.fillStyle='rgba(255,255,255,.85)'; ctx.font='120px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText('🙂', 150, 165);
-  const dataUrl = canvas.toDataURL('image/png');
-  me.photo = dataUrl;
-  document.getElementById('finalFaceImg').src = dataUrl;
-  document.getElementById('scanStatus').textContent = '✓ Demo photo used (camera unavailable in this preview)';
-  document.getElementById('scanStatus').classList.add('ok');
-  showStep('profile');
-}
-function finishRegistration(){
-  const name = document.getElementById('regName').value.trim();
-  if(!name){ alert('Please enter a display name.'); return; }
-  me.name = name;
-  document.getElementById('myProfileImg').src = me.photo;
-  document.getElementById('myProfileName').textContent = me.name;
-  document.getElementById('myProfileEmail').textContent = me.email;
-  document.getElementById('auth').classList.add('hidden');
-  document.getElementById('main').classList.remove('hidden');
-  renderChatList();
+  canvas.toBlob(async (blob)=>{
+    const sref = storageRef(storage, `identity/${myUid}.png`);
+    await uploadBytes(sref, blob);
+    const url = await getDownloadURL(sref);
+    await updateDoc(doc(db,'users',myUid), { identityPhotoURL: url, profilePhotoURL: url });
+    $('finalFaceImg').src = url;
+    $('scanStatus').textContent = '✓ Demo photo used (camera unavailable) & saved';
+    $('scanStatus').classList.add('ok');
+    showStep('profile');
+  }, 'image/png');
+};
+window.finishRegistration = async function(){
+  const name = $('regName').value.trim();
+  if(!name){ showBanner('Please enter a display name.', 'err'); return; }
+  $('btnFinish').disabled = true;
+  await updateDoc(doc(db,'users',myUid), { name });
+  const snap = await getDoc(doc(db,'users',myUid));
+  myDoc = snap.data();
+  enterApp();
+};
+
+/* ============ ENTER APP ============ */
+function enterApp(){
+  $('auth').classList.add('hidden');
+  $('main').classList.remove('hidden');
+  $('myProfileImg').src = myDoc.profilePhotoURL || myDoc.identityPhotoURL;
+  $('myProfileName').textContent = myDoc.name;
+  $('myProfileEmail').textContent = myDoc.email;
+  subscribeContacts();
+  subscribeChats();
 }
 
 /* ============ TABS ============ */
-function switchTab(tab){
+window.switchTab = function(tab){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
-  document.getElementById('view-'+tab).classList.remove('hidden');
+  $('view-'+tab).classList.remove('hidden');
+};
+
+/* ============ CONTACTS ============ */
+function subscribeContacts(){
+  if(unsubContacts) unsubContacts();
+  unsubContacts = onSnapshot(collection(db,'users',myUid,'contacts'), (snap)=>{
+    myContacts = new Set(snap.docs.map(d=>d.id));
+    renderChatList();
+    if(activeOtherUid) refreshChatHeaderSavedState();
+  });
 }
+window.saveContact = async function(){
+  if(!activeOtherUid) return;
+  await setDoc(doc(db,'users',myUid,'contacts',activeOtherUid), { savedAt: serverTimestamp() });
+};
 
 /* ============ CHAT LIST ============ */
-function renderAvatarHtml(c, size){
+function chatIdFor(a,b){ return [a,b].sort().join('_'); }
+
+function subscribeChats(){
+  if(unsubChats) unsubChats();
+  const q = query(collection(db,'chats'), where('participants','array-contains', myUid));
+  unsubChats = onSnapshot(q, async (snap)=>{
+    for(const d of snap.docs){
+      const data = d.data();
+      const otherUid = data.participants.find(p=>p!==myUid);
+      if(!chatsCache[d.id] || !chatsCache[d.id].otherData){
+        const otherSnap = await getDoc(doc(db,'users',otherUid));
+        chatsCache[d.id] = { otherUid, otherData: otherSnap.exists()?otherSnap.data():{name:'Unknown'}, lastMessage:data.lastMessage||'', updatedAt:data.updatedAt };
+      } else {
+        chatsCache[d.id].lastMessage = data.lastMessage||'';
+        chatsCache[d.id].updatedAt = data.updatedAt;
+      }
+    }
+    renderChatList();
+  });
+}
+function renderAvatarHtml(saved, photoURL, initial, size){
   const s = size||48;
-  if(c.saved){
-    return `<div class="avatar saved" style="background:${c.color}; width:${s}px; height:${s}px;">${c.photoLabel}<div class="saved-badge">✓</div></div>`;
-  } else {
-    return `<div class="avatar unsaved" style="background:${c.color}; width:${s}px; height:${s}px; font-size:20px;">👤<div class="unsaved-badge">SCAN</div></div>`;
+  if(saved){
+    return `<div class="avatar saved" style="width:${s}px; height:${s}px;">${photoURL?`<img src="${photoURL}">`:initial}<div class="saved-badge">✓</div></div>`;
   }
+  return `<div class="avatar unsaved" style="width:${s}px; height:${s}px;">${photoURL?`<img src="${photoURL}">`:'👤'}<div class="unsaved-badge">SCAN</div></div>`;
 }
 function renderChatList(){
-  const el = document.getElementById('chatList');
-  el.innerHTML = contacts.map(c => `
-    <div class="chat-row" onclick="openChat('${c.id}')">
-      ${renderAvatarHtml(c)}
+  const el = $('chatList');
+  const searchVal = ($('chatSearch')?.value||'').toLowerCase();
+  const entries = Object.entries(chatsCache)
+    .filter(([id,c])=> (c.otherData.name||c.otherData.email||'').toLowerCase().includes(searchVal))
+    .sort((a,b)=> (b[1].updatedAt?.seconds||0) - (a[1].updatedAt?.seconds||0));
+  if(entries.length===0){
+    el.innerHTML = `<div style="text-align:center; padding:40px 24px; color:var(--muted); font-size:12.5px;">No chats yet. Tap ＋ to message someone by their Gmail.</div>`;
+    return;
+  }
+  el.innerHTML = entries.map(([id,c])=>{
+    const saved = myContacts.has(c.otherUid);
+    const photo = saved ? (c.otherData.profilePhotoURL||c.otherData.identityPhotoURL) : c.otherData.identityPhotoURL;
+    const name = c.otherData.name || c.otherData.email || 'Unknown';
+    return `<div class="chat-row" onclick="openChat('${id}','${c.otherUid}')">
+      ${renderAvatarHtml(saved, photo, (name[0]||'?').toUpperCase())}
       <div class="chat-meta">
-        <div class="chat-name">${c.name} ${c.saved? '' : '<span class="tag">not saved</span>'}</div>
-        <div class="chat-last">${c.lastMsg}</div>
+        <div class="chat-name">${name} ${saved? '' : '<span class="tag">not saved</span>'}</div>
+        <div class="chat-last">${c.lastMessage||'Say hi 👋'}</div>
       </div>
-      <div class="chat-time">${c.time}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
-function openNewChatDemo(){
-  alert("In the full app this opens your address book / a phone-number search.\n\nThis prototype ships with two demo threads — one saved contact (gold ring + profile initials) and one new/unsaved contact (grey ring, shows their live registration scan instead of a chosen photo) so you can see the anti-scam behavior in action.");
-}
+
+/* ============ NEW CHAT ============ */
+window.openNewChat = function(){ $('newChatEmail').value=''; $('newChatStatus').textContent=''; $('newChatModal').classList.remove('hidden'); };
+window.startChatWithEmail = async function(){
+  const email = $('newChatEmail').value.trim();
+  const statusEl = $('newChatStatus');
+  if(!email){ statusEl.textContent = 'Enter an email.'; return; }
+  if(email === myDoc.email){ statusEl.textContent = "That's your own account."; return; }
+  statusEl.textContent = 'Looking up…';
+  const q = query(collection(db,'users'), where('email','==', email));
+  const snap = await getDocs(q);
+  if(snap.empty){ statusEl.textContent = 'No Verido account with that Gmail yet.'; return; }
+  const otherUid = snap.docs[0].id;
+  const cid = chatIdFor(myUid, otherUid);
+  const chatRef = doc(db,'chats',cid);
+  const existing = await getDoc(chatRef);
+  if(!existing.exists()){
+    await setDoc(chatRef, { participants:[myUid, otherUid], updatedAt: serverTimestamp(), lastMessage:'' });
+  }
+  closeModal('newChatModal');
+  chatsCache[cid] = { otherUid, otherData: snap.docs[0].data(), lastMessage:'', updatedAt:null };
+  openChat(cid, otherUid);
+};
 
 /* ============ CHAT WINDOW ============ */
-function openChat(id){
-  activeChatId = id;
-  const c = contacts.find(x=>x.id===id);
-  document.getElementById('chatHeadAvatar').outerHTML = renderAvatarHtml(c,38).replace('class="avatar','id="chatHeadAvatar" class="avatar');
-  document.getElementById('chatHeadName').textContent = c.name;
-  document.getElementById('identityBanner').classList.toggle('hidden', c.saved);
-  renderMessages();
-  document.getElementById('chatWindow').classList.remove('hidden');
+window.openChat = function(cid, otherUid){
+  activeChatId = cid; activeOtherUid = otherUid;
+  const c = chatsCache[cid];
+  const saved = myContacts.has(otherUid);
+  const photo = saved ? (c.otherData.profilePhotoURL||c.otherData.identityPhotoURL) : c.otherData.identityPhotoURL;
+  const name = c.otherData.name || c.otherData.email || 'Unknown';
+  $('chatHeadAvatar').outerHTML = renderAvatarHtml(saved, photo, (name[0]||'?').toUpperCase(), 38).replace('class="avatar','id="chatHeadAvatar" class="avatar');
+  $('chatHeadName').textContent = name;
+  $('identityBanner').classList.toggle('hidden', saved);
+  $('saveContactBtn').classList.toggle('hidden', saved);
+  if(unsubMessages) unsubMessages();
+  const mq = query(collection(db,'chats',cid,'messages'), orderBy('createdAt','asc'));
+  unsubMessages = onSnapshot(mq, (snap)=>{
+    const msgs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderMessages(msgs);
+  });
+  $('chatWindow').classList.remove('hidden');
+};
+function refreshChatHeaderSavedState(){
+  const saved = myContacts.has(activeOtherUid);
+  $('identityBanner').classList.toggle('hidden', saved);
+  $('saveContactBtn').classList.toggle('hidden', saved);
+  renderChatList();
 }
-function closeChat(){ document.getElementById('chatWindow').classList.add('hidden'); activeChatId=null; }
+window.closeChat = function(){ $('chatWindow').classList.add('hidden'); if(unsubMessages) unsubMessages(); activeChatId=null; activeOtherUid=null; };
 
-function renderMessages(){
-  const c = contacts.find(x=>x.id===activeChatId);
-  const el = document.getElementById('messages');
-  el.innerHTML = c.messages.map(m => renderBubble(m)).join('');
+function renderMessages(msgs){
+  const el = $('messages');
+  el.innerHTML = msgs.map(m=>renderBubble(m)).join('');
   el.scrollTop = el.scrollHeight;
 }
 function renderBubble(m){
-  const side = m.from==='me' ? 'out' : 'in';
-  if(m.type==='text'){
-    return `<div class="bubble ${side}">${m.text}<div class="time">${m.time}</div></div>`;
-  }
+  const side = m.from===myUid ? 'out' : 'in';
+  const t = nowLabel(m.createdAt);
+  if(m.type==='text') return `<div class="bubble ${side}">${escapeHtml(m.text)}<div class="time">${t}</div></div>`;
   if(m.type==='voice'){
     const bars = Array.from({length:22}, ()=> 6+Math.round(Math.random()*16));
     return `<div class="bubble ${side} voice">
-      <div class="playbtn" onclick="new Audio('${m.audio}').play()">▶</div>
+      <div class="playbtn" onclick="new Audio('${m.audioURL}').play()">▶</div>
       <div class="waveform">${bars.map(h=>`<span style="height:${h}px"></span>`).join('')}</div>
-      <span style="font-size:10px; opacity:.7;">${m.dur}s</span>
+      <span style="font-size:10px; opacity:.7;">${m.dur||''}s</span>
     </div>`;
   }
   if(m.type==='poll'){
-    const total = m.poll.votes.reduce((a,b)=>a+b,0) || 1;
+    const votes = m.poll.votes; const total = votes.reduce((a,b)=>a+b,0) || 1;
+    const iVoted = m.poll.voters && m.poll.voters[myUid] !== undefined;
     return `<div class="bubble ${side}"><div class="poll-card">
-      <div class="poll-q">📊 ${m.poll.q}</div>
-      ${m.poll.options.map((o,i)=>`<div class="poll-opt" onclick="votePoll('${m.id}',${i})"><div class="fill" style="width:${(m.poll.votes[i]/total*100)}%"></div><span>${o} <b>${m.poll.votes[i]}</b></span></div>`).join('')}
-    </div><div class="time">${m.time}</div></div>`;
+      <div class="poll-q">📊 ${escapeHtml(m.poll.q)}</div>
+      ${m.poll.options.map((o,i)=>`<div class="poll-opt" onclick="${iVoted?'':`votePoll('${m.id}',${i})`}"><div class="fill" style="width:${(votes[i]/total*100)}%"></div><span>${escapeHtml(o)} <b>${votes[i]}</b></span></div>`).join('')}
+    </div><div class="time">${t}</div></div>`;
   }
   if(m.type==='location'){
     return `<div class="bubble ${side}"><div class="loc-card">
       <div class="loc-map">📍</div>
       <div class="loc-info">Live location shared<br><a href="https://www.google.com/maps?q=${m.lat},${m.lng}" target="_blank">Open in Maps →</a></div>
-    </div><div class="time">${m.time}</div></div>`;
+    </div><div class="time">${t}</div></div>`;
   }
   return '';
 }
-function nowTime(){ const d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
-function sendText(){
-  const input = document.getElementById('msgInput');
+async function touchChat(lastMessage){
+  await updateDoc(doc(db,'chats',activeChatId), { lastMessage, updatedAt: serverTimestamp() });
+}
+
+window.sendText = async function(){
+  const input = $('msgInput');
   const text = input.value.trim();
-  if(!text) return;
-  const c = contacts.find(x=>x.id===activeChatId);
-  c.messages.push({from:'me', type:'text', text, time:nowTime()});
-  c.lastMsg = text; c.time = 'now';
+  if(!text || !activeChatId) return;
   input.value='';
-  renderMessages(); renderChatList();
-}
+  await addDoc(collection(db,'chats',activeChatId,'messages'), { from: myUid, type:'text', text, createdAt: serverTimestamp() });
+  await touchChat(text);
+};
 
-/* ============ ATTACH MENU / POLL / LOCATION ============ */
-function toggleAttach(){ document.getElementById('attachMenu').classList.toggle('hidden'); }
-function openPoll(){ toggleAttach(); document.getElementById('pollModal').classList.remove('hidden'); }
-function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
-function sendPoll(){
-  const q = document.getElementById('pollQ').value.trim();
-  const opts = [document.getElementById('pollO1').value.trim(), document.getElementById('pollO2').value.trim(), document.getElementById('pollO3').value.trim()].filter(Boolean);
+/* ============ ATTACH / POLL / LOCATION ============ */
+window.toggleAttach = function(){ $('attachMenu').classList.toggle('hidden'); };
+window.openPoll = function(){ toggleAttach(); $('pollModal').classList.remove('hidden'); };
+window.closeModal = function(id){ $(id).classList.add('hidden'); };
+window.sendPoll = async function(){
+  const q = $('pollQ').value.trim();
+  const opts = [$('pollO1').value.trim(), $('pollO2').value.trim(), $('pollO3').value.trim()].filter(Boolean);
   if(!q || opts.length<2){ alert('Add a question and at least 2 options.'); return; }
-  const c = contacts.find(x=>x.id===activeChatId);
-  const id = 'p'+Date.now();
-  c.messages.push({from:'me', type:'poll', id, time:nowTime(), poll:{ q, options:opts, votes:opts.map(()=>0) }});
-  c.lastMsg = '📊 '+q; c.time='now';
-  ['pollQ','pollO1','pollO2','pollO3'].forEach(x=>document.getElementById(x).value='');
-  closeModal('pollModal'); renderMessages(); renderChatList();
-}
-function votePoll(msgId, idx){
-  const c = contacts.find(x=>x.id===activeChatId);
-  const m = c.messages.find(x=>x.id===msgId);
-  if(m.voted) return;
-  m.poll.votes[idx]++; m.voted = true;
-  renderMessages();
-}
-function sendLocation(){
+  await addDoc(collection(db,'chats',activeChatId,'messages'), {
+    from: myUid, type:'poll', createdAt: serverTimestamp(),
+    poll: { q, options: opts, votes: opts.map(()=>0), voters:{} }
+  });
+  await touchChat('📊 '+q);
+  ['pollQ','pollO1','pollO2','pollO3'].forEach(x=>$(x).value='');
+  closeModal('pollModal');
+};
+window.votePoll = async function(msgId, idx){
+  const ref = doc(db,'chats',activeChatId,'messages',msgId);
+  await runTransaction(db, async (tx)=>{
+    const snap = await tx.get(ref);
+    const data = snap.data();
+    if(data.poll.voters && data.poll.voters[myUid] !== undefined) return;
+    const votes = [...data.poll.votes]; votes[idx]++;
+    const voters = { ...(data.poll.voters||{}), [myUid]: idx };
+    tx.update(ref, { 'poll.votes': votes, 'poll.voters': voters });
+  });
+};
+window.sendLocation = function(){
   toggleAttach();
-  const c = contacts.find(x=>x.id===activeChatId);
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(pos=>{
-      c.messages.push({from:'me', type:'location', lat:pos.coords.latitude.toFixed(4), lng:pos.coords.longitude.toFixed(4), time:nowTime()});
-      c.lastMsg = '📍 Location'; c.time='now';
-      renderMessages(); renderChatList();
-    }, err=>{
-      c.messages.push({from:'me', type:'location', lat:'6.9271', lng:'79.8612', time:nowTime()});
-      c.lastMsg = '📍 Location'; c.time='now';
-      renderMessages(); renderChatList();
-    });
-  }
-}
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async (pos)=>{
+    const lat = pos.coords.latitude.toFixed(4), lng = pos.coords.longitude.toFixed(4);
+    await addDoc(collection(db,'chats',activeChatId,'messages'), { from: myUid, type:'location', lat, lng, createdAt: serverTimestamp() });
+    await touchChat('📍 Location');
+  }, async ()=>{
+    await addDoc(collection(db,'chats',activeChatId,'messages'), { from: myUid, type:'location', lat:'6.9271', lng:'79.8612', createdAt: serverTimestamp() });
+    await touchChat('📍 Location');
+  });
+};
 
 /* ============ VOICE MESSAGE RECORDING ============ */
-function startRecording(){
+window.startRecording = function(){
   navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
     recChunks = [];
     mediaRecorder = new MediaRecorder(stream);
     mediaRecorder.ondataavailable = e=>recChunks.push(e.data);
     mediaRecorder.start();
     recStart = Date.now();
-    document.getElementById('recordBtn').classList.add('rec');
-  }).catch(()=>{ alert('Microphone blocked in this preview — voice messages will work once deployed with mic permission.'); });
-}
-function stopRecording(){
+    $('recordBtn').classList.add('rec');
+  }).catch(()=>{ alert('Microphone blocked in this preview.'); });
+};
+window.stopRecording = function(){
   if(!mediaRecorder || mediaRecorder.state!=='recording') return;
   const dur = Math.max(1, Math.round((Date.now()-recStart)/1000));
-  mediaRecorder.onstop = ()=>{
+  mediaRecorder.onstop = async ()=>{
     const blob = new Blob(recChunks, {type:'audio/webm'});
-    const url = URL.createObjectURL(blob);
-    const c = contacts.find(x=>x.id===activeChatId);
-    c.messages.push({from:'me', type:'voice', audio:url, dur, time:nowTime()});
-    c.lastMsg = '🎤 Voice message'; c.time='now';
-    renderMessages(); renderChatList();
+    const sref = storageRef(storage, `voice/${activeChatId}/${Date.now()}.webm`);
+    await uploadBytes(sref, blob);
+    const url = await getDownloadURL(sref);
+    await addDoc(collection(db,'chats',activeChatId,'messages'), { from: myUid, type:'voice', audioURL:url, dur, createdAt: serverTimestamp() });
+    await touchChat('🎤 Voice message');
   };
   mediaRecorder.stop();
-  document.getElementById('recordBtn').classList.remove('rec');
-}
-function cancelRecordingIfActive(){
-  if(mediaRecorder && mediaRecorder.state==='recording'){ mediaRecorder.stop(); document.getElementById('recordBtn').classList.remove('rec'); }
-}
+  $('recordBtn').classList.remove('rec');
+};
+window.cancelRecordingIfActive = function(){
+  if(mediaRecorder && mediaRecorder.state==='recording'){ mediaRecorder.stop(); $('recordBtn').classList.remove('rec'); }
+};
 
-/* ============ VOICE TYPING (speech-to-text, EN/SI) ============ */
-function toggleVoiceTyping(){
+/* ============ VOICE TYPING ============ */
+window.toggleVoiceTyping = function(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ alert('This browser does not support live speech-to-text. Try Chrome.'); return; }
-  const btn = document.getElementById('micTypeBtn');
+  const btn = $('micTypeBtn');
   if(recognizing){ recognition.stop(); return; }
   recognition = new SR();
-  recognition.lang = document.getElementById('voiceLang').value;
+  recognition.lang = $('voiceLang').value;
   recognition.interimResults = true;
   recognition.continuous = true;
   recognition.onstart = ()=>{ recognizing=true; btn.classList.add('active'); };
   recognition.onend = ()=>{ recognizing=false; btn.classList.remove('active'); };
   recognition.onerror = ()=>{ recognizing=false; btn.classList.remove('active'); };
   recognition.onresult = (e)=>{
-    let text='';
-    for(let i=0;i<e.results.length;i++){ text += e.results[i][0].transcript; }
-    document.getElementById('msgInput').value = text;
+    let text=''; for(let i=0;i<e.results.length;i++){ text += e.results[i][0].transcript; }
+    $('msgInput').value = text;
   };
   recognition.start();
-}
+};
 
-/* ============ CALLS ============ */
-function startCall(kind){
-  const c = contacts.find(x=>x.id===activeChatId);
-  document.getElementById('callAvatar').textContent = c.saved ? c.photoLabel : '👤';
-  document.getElementById('callName').textContent = c.name;
-  document.getElementById('callStatus').textContent = (kind==='video'?'Video call':'Voice call')+' — calling…';
-  document.getElementById('callScreen').classList.remove('hidden');
-  setTimeout(()=>{ if(!document.getElementById('callScreen').classList.contains('hidden')) document.getElementById('callStatus').textContent='00:0'+Math.floor(Math.random()*9); }, 1400);
-}
-function endCall(){ document.getElementById('callScreen').classList.add('hidden'); }
-function toggleMute(){ document.getElementById('muteBtn').classList.toggle('active'); }
-function toggleSpeaker(){ document.getElementById('speakerBtn').classList.toggle('active'); }
+/* ============ CALLS (UI mockup only) ============ */
+window.startCall = function(kind){
+  const c = chatsCache[activeChatId];
+  const name = c.otherData.name || c.otherData.email;
+  $('callAvatar').textContent = (name[0]||'?').toUpperCase();
+  $('callName').textContent = name;
+  $('callStatus').textContent = (kind==='video'?'Video call':'Voice call')+' — UI preview only';
+  $('callScreen').classList.remove('hidden');
+};
+window.endCall = function(){ $('callScreen').classList.add('hidden'); };
+window.toggleMute = function(){ $('muteBtn').classList.toggle('active'); };
+window.toggleSpeaker = function(){ $('speakerBtn').classList.toggle('active'); };
 
 /* ============ THEME ============ */
-function setAccent(color, node){
+window.setAccent = function(color, node){
   document.querySelectorAll('.theme-dot').forEach(d=>d.classList.remove('selected'));
   node.classList.add('selected');
   document.documentElement.style.setProperty('--coral', color==='coral' ? '#FF6B5C' : (color==='violet' ? '#8B7CF6' : '#F2B84B'));
-}
+};
 </script>
 </body>
 </html>
