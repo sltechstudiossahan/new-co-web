@@ -169,7 +169,34 @@ input,select,textarea{font-family:inherit;}
 <body>
 <div id="app">
 
-  <div id="boot" style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:13px;">Connecting to Verido<span class="loading-dot"></span></div>
+  <div id="boot" style="height:100%; display:flex; align-items:center; justify-content:center; padding:30px;">
+    <div id="bootInner" style="color:var(--muted); font-size:13px;">Connecting to Verido<span class="loading-dot"></span></div>
+  </div>
+
+  <script>
+    // Watchdog: if the Firebase module script never even starts running (blocked script,
+    // no internet, file:// origin, ad-blocker, firewall, etc.) this fires and shows
+    // an on-screen diagnosis instead of leaving the page stuck forever.
+    window.__veridoScriptStarted = false;
+    window.__veridoBooted = false;
+    setTimeout(function(){
+      if(!window.__veridoBooted){
+        var reason = window.__veridoScriptStarted
+          ? "The app script started but never finished connecting to Firebase."
+          : "The app's script never started running at all — this points to the script being blocked before Firebase even loaded.";
+        document.getElementById('bootInner').innerHTML =
+          '<div style="max-width:380px; text-align:left; font-size:12.5px; line-height:1.7; color:var(--muted);">' +
+          '<b style="color:var(--text); font-size:14px;">Still not connected after 7 seconds.</b><br>' + reason + '<br><br>' +
+          '<b style="color:var(--text);">Check these in order:</b><br>' +
+          '1. Are you opening this via <code style="color:var(--gold)">http://localhost:...</code>? If the address bar shows <code style="color:var(--danger)">file://</code>, that\'s the problem — Firebase modules are blocked on file://. Run <code style="color:var(--gold)">python3 -m http.server</code> in the folder and open the localhost link.<br>' +
+          '2. Open DevTools (F12) → Console tab. Any red text there is the real error — copy it back to me.<br>' +
+          '3. Check your internet connection can reach <code style="color:var(--gold)">www.gstatic.com</code> (try opening it directly in a new tab).<br>' +
+          '4. Disable ad-blockers / privacy extensions for this page and reload.' +
+          '</div>';
+      }
+    }, 7000);
+  </script>
+
 
   <!-- ================= AUTH FLOW ================= -->
   <div id="auth" class="hidden">
@@ -367,32 +394,56 @@ input,select,textarea{font-family:inherit;}
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
+window.__veridoScriptStarted = true;
+
+function showBootError(title, detail){
+  window.__veridoBooted = true; // stop the watchdog from also firing
+  const el = document.getElementById('bootInner');
+  if(el){
+    el.innerHTML = '<div style="max-width:380px; text-align:left; font-size:12.5px; line-height:1.7; color:var(--muted);">' +
+      '<b style="color:var(--danger); font-size:14px;">' + title + '</b><br>' + detail + '</div>';
+  }
+}
+window.addEventListener('error', (e)=>{ showBootError('A script error occurred:', (e.message||'Unknown error') + (e.filename ? '<br><span style="font-size:11px">'+e.filename+':'+e.lineno+'</span>' : '')); });
+window.addEventListener('unhandledrejection', (e)=>{ showBootError('An unexpected error occurred:', (e.reason && (e.reason.message||e.reason)) || 'Unknown error'); });
+
+let app, auth, db, storage;
+try{
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  const authMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+  const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const stMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js");
+  window.__fb = { initializeApp, ...authMod, ...fsMod, ...stMod };
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCaMdPoVqGflbBhWhsuV4L2duqiASIbP64",
+    authDomain: "src-competion-web.firebaseapp.com",
+    projectId: "src-competion-web",
+    storageBucket: "src-competion-web.firebasestorage.app",
+    messagingSenderId: "568183938397",
+    appId: "1:568183938397:web:02d16665d7bd393d505cb4",
+    measurementId: "G-C0YQX47SR5"
+  };
+  app = initializeApp(firebaseConfig);
+  auth = authMod.getAuth(app);
+  db = fsMod.getFirestore(app);
+  storage = stMod.getStorage(app);
+}catch(loadErr){
+  showBootError(
+    'Could not load Firebase.',
+    'This almost always means the browser blocked the script from reaching <code style="color:var(--gold)">www.gstatic.com</code> — either you\'re opening this file directly (check the address bar: if it says <code style="color:var(--danger)">file://</code>, that\'s it — serve it with <code style="color:var(--gold)">python3 -m http.server</code> instead), or there\'s no internet connection, or a firewall/extension is blocking Google domains.<br><br>Raw error: ' + (loadErr.message || loadErr)
+  );
+  throw loadErr;
+}
+const {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   sendEmailVerification, onAuthStateChanged, signOut, reload
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-  getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where,
+} = window.__fb;
+const {
+  doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where,
   getDocs, onSnapshot, orderBy, serverTimestamp, runTransaction
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getStorage, ref as storageRef, uploadBytes, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCaMdPoVqGflbBhWhsuV4L2duqiASIbP64",
-  authDomain: "src-competion-web.firebaseapp.com",
-  projectId: "src-competion-web",
-  storageBucket: "src-competion-web.firebasestorage.app",
-  messagingSenderId: "568183938397",
-  appId: "1:568183938397:web:02d16665d7bd393d505cb4",
-  measurementId: "G-C0YQX47SR5"
-};
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+} = window.__fb;
+const { ref: storageRef, uploadBytes, getDownloadURL } = window.__fb;
 
 /* ============ GLOBAL STATE ============ */
 let myUid = null, myDoc = null;
@@ -416,34 +467,45 @@ function nowLabel(ts){
   return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
 }
 
+
 /* ============ BOOT / SESSION ============ */
 onAuthStateChanged(auth, async (user)=>{
+  window.__veridoBooted = true;
   $('boot').classList.add('hidden');
-  if(!user){ $('auth').classList.remove('hidden'); $('main').classList.add('hidden'); return; }
-  myUid = user.uid;
-  const snap = await getDoc(doc(db,'users',myUid));
-  if(!user.emailVerified){
-    // resume registration at verification step
-    $('auth').classList.remove('hidden');
-    $('verifyEmailShown').textContent = user.email;
-    showStep('verify');
-    return;
-  }
-  if(!snap.exists() || !snap.data().identityPhotoURL || !snap.data().name){
-    // resume registration: has account + verified email, missing face/profile
-    $('auth').classList.remove('hidden');
-    if(snap.exists() && snap.data().identityPhotoURL){
-      window.__pendingPhotoURL = snap.data().identityPhotoURL;
-      $('finalFaceImg').src = snap.data().identityPhotoURL;
-      showStep('profile');
-    } else {
-      showStep('face');
+  try{
+    if(!user){ $('auth').classList.remove('hidden'); $('main').classList.add('hidden'); return; }
+    myUid = user.uid;
+    const snap = await getDoc(doc(db,'users',myUid));
+    if(!user.emailVerified){
+      // resume registration at verification step
+      $('auth').classList.remove('hidden');
+      $('verifyEmailShown').textContent = user.email;
+      showStep('verify');
+      return;
     }
-    return;
+    if(!snap.exists() || !snap.data().identityPhotoURL || !snap.data().name){
+      // resume registration: has account + verified email, missing face/profile
+      $('auth').classList.remove('hidden');
+      if(snap.exists() && snap.data().identityPhotoURL){
+        window.__pendingPhotoURL = snap.data().identityPhotoURL;
+        $('finalFaceImg').src = snap.data().identityPhotoURL;
+        showStep('profile');
+      } else {
+        showStep('face');
+      }
+      return;
+    }
+    myDoc = snap.data();
+    enterApp();
+  }catch(authErr){
+    $('auth').classList.remove('hidden');
+    showBanner('Could not load your account data: ' + (authErr.message||authErr) + '. This usually means Firestore rules aren\u2019t published yet — see FIREBASE-SETUP.md.', 'err');
   }
-  myDoc = snap.data();
-  enterApp();
+}, (authError)=>{
+  window.__veridoBooted = true;
+  showBootError('Firebase Auth failed to start.', authError.message || String(authError));
 });
+
 
 function showStep(name){
   ['email','verify','face','profile'].forEach(s=>$('step-'+s).classList.add('hidden'));
