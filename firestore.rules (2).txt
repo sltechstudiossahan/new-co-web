@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isVerified() { return signedIn() && request.auth.token.email_verified == true; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // ---- users ----
+    match /users/{uid} {
+      allow read: if isVerified();               // anyone verified can look up a user (needed for search-by-email, avatar display)
+      allow create: if isMe(uid);                 // only during your own registration
+      allow update: if isMe(uid)
+                    && request.resource.data.recoveryHash == resource.data.recoveryHash
+                    && request.resource.data.email == resource.data.email; // can't silently change recovery secret or email here
+      allow delete: if false;
+    }
+
+    // ---- saved contacts (private per user) ----
+    match /contacts/{uid}/savedContacts/{otherUid} {
+      allow read, write: if isMe(uid);
+    }
+
+    // ---- chats ----
+    match /chats/{chatId} {
+      allow read: if isVerified() && request.auth.uid in resource.data.participants;
+      allow create: if isVerified() && request.auth.uid in request.resource.data.participants
+                    && request.resource.data.participants.size() == 2;
+      allow update: if isVerified() && request.auth.uid in resource.data.participants;
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isVerified() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if isVerified()
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && request.resource.data.senderId == request.auth.uid;
+        // updates are only for poll votes — only the options field may change
+        allow update: if isVerified()
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['options']);
+        allow delete: if false;
+      }
+    }
+  }
+}

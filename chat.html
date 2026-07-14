@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Verido</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="me-row">
+        <div class="avatar-wrap verified" style="width:40px;height:40px;">
+          <img class="avatar" id="me-avatar" src="" alt="" />
+        </div>
+        <div>
+          <div class="wordmark" style="font-size:16px;" id="me-name">verido<span class="dot">.</span></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="new-chat-btn" title="Start a chat">＋</button>
+        <button class="icon-btn" id="logout-btn" title="Log out">⏻</button>
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <input type="text" id="contact-search" placeholder="Search your chats" />
+    </div>
+
+    <div class="contact-list" id="contact-list">
+      <div class="empty-state">No chats yet. Tap ＋ to find someone by their Gmail address and start a verified conversation.</div>
+    </div>
+  </aside>
+
+  <!-- ===================== CHAT PANE ===================== -->
+  <section class="chat-pane" id="chat-pane">
+    <div class="empty-state" id="no-chat-selected" style="margin:auto;">
+      <div class="wordmark" style="font-size:26px; margin-bottom:10px;">verido<span class="dot">.</span></div>
+      Pick a chat on the left, or start a new one — every new contact shows you their live registration selfie until you choose to save them.
+    </div>
+
+    <div id="active-chat" class="hidden" style="display:flex; flex-direction:column; height:100%;">
+      <div class="chat-head">
+        <button class="icon-btn back-btn" id="back-btn">←</button>
+        <div class="avatar-wrap" id="chat-head-avatar-wrap" style="width:42px;height:42px;">
+          <img class="avatar" id="chat-head-avatar" src="" />
+        </div>
+        <div style="min-width:0;">
+          <div class="name" id="chat-head-name"></div>
+          <div class="sub" id="chat-head-sub"></div>
+        </div>
+      </div>
+
+      <div class="unsaved-strip hidden" id="unsaved-strip">
+        <img id="unsaved-strip-img" src="" />
+        <div>This is their <strong>live registration selfie</strong> — Verido shows it until you save them, so a scammer can't hide behind someone else's photo.</div>
+        <button class="btn btn-violet save-btn" id="save-contact-btn">Save contact</button>
+      </div>
+
+      <div class="messages" id="messages"></div>
+
+      <div class="composer">
+        <div class="stt-live" id="stt-live"></div>
+        <div class="composer-row">
+          <div class="lang-toggle" id="lang-toggle" title="Voice typing language">
+            <button data-lang="en-US" class="active">EN</button>
+            <button data-lang="si-LK">සිං</button>
+          </div>
+          <button class="composer-btn" id="mic-type-btn" title="Voice typing (speech-to-text)">🎙️</button>
+          <textarea id="text-input" rows="1" placeholder="Message"></textarea>
+          <button class="composer-btn" id="poll-btn" title="Send a poll">📊</button>
+          <button class="composer-btn" id="location-btn" title="Share live location">📍</button>
+          <button class="composer-btn" id="voice-note-btn" title="Record a voice message">🎤</button>
+          <button class="composer-btn send" id="send-btn" title="Send">➤</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===================== NEW CHAT MODAL ===================== -->
+<div class="modal-backdrop hidden" id="new-chat-modal">
+  <div class="modal">
+    <h3>Start a chat</h3>
+    <div class="field">
+      <label>Their Gmail address</label>
+      <input type="email" id="new-chat-email" placeholder="name@gmail.com" />
+      <small class="err" id="new-chat-err"></small>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="new-chat-cancel">Cancel</button>
+      <button class="btn btn-primary" id="new-chat-go">Find & start</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== POLL MODAL ===================== -->
+<div class="modal-backdrop hidden" id="poll-modal">
+  <div class="modal">
+    <h3>Create a poll</h3>
+    <div class="field">
+      <label>Question</label>
+      <input type="text" id="poll-question" placeholder="What are we deciding?" />
+    </div>
+    <div id="poll-options-wrap">
+      <div class="poll-opt-input"><input type="text" placeholder="Option 1" /></div>
+      <div class="poll-opt-input"><input type="text" placeholder="Option 2" /></div>
+    </div>
+    <button type="button" class="add-opt-btn" id="add-poll-opt">+ add another option</button>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="poll-cancel">Cancel</button>
+      <button class="btn btn-primary" id="poll-send">Send poll</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-slot"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

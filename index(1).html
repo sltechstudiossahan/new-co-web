@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Verido — verified conversations</title>
+<link rel="stylesheet" href="css/style.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-card">
+
+    <div class="auth-head">
+      <div class="wordmark">verido<span class="dot">.</span></div>
+      <p>Every account here shows a real face before it shows a name.</p>
+    </div>
+
+    <div id="banner-slot"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="login">Log in</button>
+      <button class="tab-btn" data-tab="register">Create account</button>
+    </div>
+
+    <!-- ===================== LOGIN ===================== -->
+    <form id="login-form">
+      <div class="field">
+        <label>Gmail address</label>
+        <input type="email" id="login-email" placeholder="you@gmail.com" required />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" required />
+        <small class="err" id="login-err"></small>
+      </div>
+      <div class="auth-actions">
+        <button type="submit" class="btn btn-primary" style="flex:1">Log in</button>
+      </div>
+      <p class="auth-foot"><a href="#" id="resend-verify-link">Resend verification email</a></p>
+    </form>
+
+    <!-- ===================== REGISTER (multi-step) ===================== -->
+    <form id="register-form" class="hidden">
+
+      <div class="step-indicator">
+        <div class="step-dot active" data-step="1"></div>
+        <div class="step-dot" data-step="2"></div>
+        <div class="step-dot" data-step="3"></div>
+      </div>
+
+      <!-- step 1: details -->
+      <div class="reg-step" data-step="1">
+        <div class="field">
+          <label>Display name</label>
+          <input type="text" id="reg-name" placeholder="How contacts see you" required />
+        </div>
+        <div class="field">
+          <label>Gmail address</label>
+          <input type="email" id="reg-email" placeholder="you@gmail.com" required />
+          <small class="err" id="reg-email-err"></small>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="reg-password" placeholder="At least 8 characters" required minlength="8" />
+        </div>
+        <div class="field">
+          <label>Recovery password</label>
+          <input type="password" id="reg-recovery" placeholder="Separate password, used only to recover access" required minlength="8" />
+          <small class="err" id="reg-pw-err"></small>
+        </div>
+        <button type="button" class="btn btn-primary" id="to-step-2" style="width:100%">Continue to face verification</button>
+      </div>
+
+      <!-- step 2: live face capture -->
+      <div class="reg-step hidden" data-step="2">
+        <div class="verify-badge" style="margin-bottom:14px">◆ live camera required — no uploaded photos</div>
+
+        <div class="cam-wrap" id="cam-wrap">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <img id="cam-preview" class="captured-preview hidden" />
+        </div>
+        <div class="cam-status" id="cam-status">Starting camera…</div>
+        <p class="cam-hint">Center your face in the frame in good light. This photo is what new contacts see until they save you — it's how Verido keeps scammers from hiding behind a blank profile.</p>
+
+        <div class="auth-actions">
+          <button type="button" class="btn btn-ghost" id="back-to-1">Back</button>
+          <button type="button" class="btn btn-primary" id="capture-btn" disabled>Capture face</button>
+        </div>
+        <div class="auth-actions hidden" id="retake-row">
+          <button type="button" class="btn btn-ghost" id="retake-btn" style="flex:1">Retake</button>
+          <button type="button" class="btn btn-primary" id="confirm-face-btn" style="flex:1">Use this photo</button>
+        </div>
+      </div>
+
+      <!-- step 3: submitting -->
+      <div class="reg-step hidden" data-step="3">
+        <div style="text-align:center; padding:20px 0;">
+          <img id="final-preview" style="width:120px;height:120px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 4px var(--gold); margin-bottom:16px;" />
+          <p style="color:var(--muted); font-size:13.5px; line-height:1.6;">Creating your account and sending a Gmail verification link. You'll need to verify before you can sign in — that, plus your recovery password, is what keeps this platform harder for scammers to slip into.</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="submit-register" style="width:100%">Create my verified account</button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+<script type="module" src="js/auth.js"></script>
+</body>
+</html>

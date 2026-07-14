@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() { return request.auth != null; }
+
+    // registration selfies: only the owner can write their own; any signed-in
+    // verified user can read (needed so new contacts can see the selfie)
+    match /registrationSelfies/{uid}.jpg {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid
+                   && request.resource.size < 8 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    match /profilePhotos/{uid}.jpg {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid
+                   && request.resource.size < 8 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    match /voiceMessages/{chatId}/{fileName} {
+      allow read, write: if signedIn(); // tighten to chat participants if you add a lookup layer
+    }
+  }
+}
